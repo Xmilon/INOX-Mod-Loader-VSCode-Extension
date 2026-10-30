@@ -1,0 +1,273 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/Xmilon/horizon/blob/inox-loader/docs/inox-mods.md",
+  "title": "inox.toml",
+  "description": "An Inox mod for Horizon: blocks, items, ores, armour, tools, tags and creative tabs. Reference: docs/inox-mods.md in the Horizon fork.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mod"],
+  "definitions": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]{1,64}$",
+      "description": "A name: [a-z0-9_], 1 to 64 characters. Its id is <mod id>:<name>."
+    },
+    "ref": {
+      "type": "string",
+      "pattern": "^([a-z0-9_.-]+:)?[a-z0-9_./-]+$",
+      "description": "A block or item: a name of this mod's (ruby_ingot) or an id (minecraft:stick)."
+    },
+    "refOrTag": {
+      "type": "string",
+      "pattern": "^#?([a-z0-9_.-]+:)?[a-z0-9_./-]+$",
+      "description": "A name of this mod's, an id, or a #tag (#c:ingots)."
+    },
+    "vanilla": {
+      "type": "string",
+      "pattern": "^minecraft:[a-z0-9_./-]+$"
+    },
+    "tagId": {
+      "type": "string",
+      "pattern": "^#?[a-z0-9_.-]+:[a-z0-9_./-]+$",
+      "description": "A tag id: <namespace>:<path> (minecraft:swords, c:ingots)."
+    },
+    "tabId": {
+      "type": "string",
+      "pattern": "^([a-z0-9_.-]+:)?[a-z0-9_./-]+$",
+      "description": "A creative tab: minecraft:building_blocks, minecraft:natural_blocks, minecraft:functional_blocks, minecraft:redstone_blocks, minecraft:tools_and_utilities, minecraft:combat, minecraft:food_and_drinks, minecraft:ingredients, another mod's tab, or one of yours by name."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/tagId" },
+      "default": []
+    },
+    "creativeTabs": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/tabId" },
+      "description": "Other creative tabs it is also in, at their end. It is always in the mod's own tab.",
+      "default": []
+    },
+    "rarity": {
+      "type": "string",
+      "enum": ["common", "uncommon", "rare", "epic"],
+      "description": "The name's colour."
+    },
+    "biomes": {
+      "anyOf": [
+        { "$ref": "#/definitions/refOrTag" },
+        { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/refOrTag" } }
+      ]
+    }
+  },
+  "properties": {
+    "mod": {
+      "type": "object",
+      "description": "Who the mod is, as Options > Mods lists it.",
+      "additionalProperties": false,
+      "required": ["id", "name", "version"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]{1,64}$",
+          "description": "[a-z0-9_], 1 to 64 characters: the mod's namespace (<id>:ruby), its row in Options > Mods and its log name."
+        },
+        "name": { "type": "string", "description": "Shown in Options > Mods." },
+        "version": { "type": "string", "description": "Shown after the name." },
+        "description": { "type": "string", "description": "Shown in the row's tooltip." },
+        "authors": { "type": "array", "items": { "type": "string" } },
+        "namespaces": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9_.-]{1,64}$", "not": { "enum": ["minecraft", "c", "horizon"] } },
+          "description": "Extra namespaces your own assets/ and data/ files use. Not minecraft, c or horizon."
+        }
+      }
+    },
+    "block": {
+      "type": "object",
+      "description": "Blocks by name: [block.ruby_block] is <id>:ruby_block.",
+      "propertyNames": { "$ref": "#/definitions/name" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["template"],
+        "properties": {
+          "template": { "$ref": "#/definitions/vanilla", "description": "The vanilla block it behaves as (minecraft:iron_block): shape, states, sounds, tool needs and behaviour are copied." },
+          "name": { "type": "string", "description": "English name; the name in title case by default." },
+          "texture": { "type": "string", "description": "The texture on every face: ruby means assets/<id>/textures/block/ruby.png (must exist); with a : it is a full texture id (minecraft:block/stone). The block's name by default." },
+          "model": { "type": "string", "enum": ["cube_all", "none"], "default": "cube_all", "description": "cube_all: a one-texture cube. none: you ship the blockstate and models (stairs, logs, slabs...)." },
+          "hardness": { "type": "number", "description": "Seconds-to-mine base: -1 is unbreakable, otherwise 0 or more (stone 1.5, iron block 5)." },
+          "explosion_resistance": { "type": "number", "minimum": 0 },
+          "light": { "type": "integer", "minimum": 0, "maximum": 15, "description": "Light it gives, 0 to 15." },
+          "requires_tool": { "type": "boolean", "description": "Whether it drops only when mined with the right tool." },
+          "friction": { "type": "number", "minimum": 0, "maximum": 2, "description": "Slipperiness, 0 to 2 (ice 0.98, most blocks 0.6)." },
+          "map_color": { "type": "integer", "minimum": 0, "maximum": 61, "description": "A MapColor id, 0 to 61." },
+          "sounds": { "$ref": "#/definitions/vanilla", "description": "The vanilla block whose sounds it plays (minecraft:amethyst_block)." },
+          "item": { "type": "boolean", "default": true, "description": "Whether it has an item (placeable, /give-able, in the creative inventory)." },
+          "drops": { "type": "string", "pattern": "^(self|none|[a-z0-9_.-]+:[a-z0-9_./-]+)$", "default": "self", "description": "What breaking it drops: self, none, or an item id." },
+          "tool": { "type": "string", "enum": ["pickaxe", "axe", "shovel", "hoe"], "description": "Adds it to minecraft:mineable/<tool>: that tool mines it fast." },
+          "tier": { "type": "string", "enum": ["stone", "iron", "diamond"], "description": "Adds it to minecraft:needs_<tier>_tool." },
+          "tags": { "$ref": "#/definitions/tags", "description": "Block tags it joins (minecraft:beacon_base_blocks, c:ores)." },
+          "creative_tabs": { "$ref": "#/definitions/creativeTabs" }
+        }
+      }
+    },
+    "item": {
+      "type": "object",
+      "description": "Items by name: [item.ruby] is <id>:ruby.",
+      "propertyNames": { "$ref": "#/definitions/name" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["template"],
+        "properties": {
+          "template": { "$ref": "#/definitions/vanilla", "description": "The vanilla item it behaves as (minecraft:diamond_sword, minecraft:golden_apple). All its data components are copied." },
+          "name": { "type": "string", "description": "English name; the name in title case by default." },
+          "texture": { "type": "string", "description": "assets/<id>/textures/item/<texture>.png (must exist), or a full texture id with :. The item's name by default." },
+          "model": { "type": "string", "enum": ["generated", "handheld", "none"], "default": "generated", "description": "generated: flat. handheld: held like a tool. none: you ship the item model and definition." },
+          "max_stack_size": { "type": "integer", "minimum": 1, "maximum": 99 },
+          "rarity": { "$ref": "#/definitions/rarity" },
+          "durability": { "type": "integer", "minimum": 1, "description": "Uses before it breaks: iron sword 250, diamond 1561, netherite 2031." },
+          "attack_damage": { "type": "number", "minimum": 0, "description": "As the tooltip shows it (iron sword 6, diamond 7). Set attack_speed too." },
+          "attack_speed": { "type": "number", "exclusiveMinimum": 0, "description": "Attacks a second as the tooltip shows it (swords 1.6). Set attack_damage too." },
+          "repair": { "$ref": "#/definitions/refOrTag", "description": "What repairs it in an anvil: an item or a #tag." },
+          "enchantability": { "type": "integer", "minimum": 0, "description": "Iron tools 14, diamond 10, gold 22." },
+          "food": {
+            "type": "object",
+            "description": "Makes it edible.",
+            "additionalProperties": false,
+            "required": ["nutrition", "saturation"],
+            "properties": {
+              "nutrition": { "type": "integer", "minimum": 0, "description": "Hunger points (half drumsticks): bread 5, steak 8." },
+              "saturation": { "type": "number", "minimum": 0, "description": "Saturation: bread 6.0, steak 12.8, golden apple 9.6." },
+              "always_eat": { "type": "boolean", "default": false, "description": "Edible with a full hunger bar." },
+              "eat_seconds": { "type": "number", "minimum": 0, "default": 1.6 },
+              "effects": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["id", "seconds"],
+                  "properties": {
+                    "id": { "type": "string", "description": "A vanilla effect (minecraft:speed)." },
+                    "seconds": { "type": "number", "exclusiveMinimum": 0 },
+                    "level": { "type": "integer", "minimum": 1, "maximum": 255, "default": 1, "description": "1 is level I." },
+                    "chance": { "type": "number", "minimum": 0, "maximum": 1, "default": 1 }
+                  }
+                }
+              }
+            }
+          },
+          "tags": { "$ref": "#/definitions/tags", "description": "Item tags it joins (minecraft:swords, c:ingots)." },
+          "creative_tabs": { "$ref": "#/definitions/creativeTabs" },
+          "components": {
+            "type": "object",
+            "description": "Other data components set (\"minecraft:max_damage\" = 900) or removed (\"!minecraft:repairable\" = {}).",
+            "propertyNames": { "pattern": "^!?minecraft:[a-z0-9_./-]+$" }
+          }
+        },
+        "dependencies": {
+          "attack_damage": ["attack_speed"],
+          "attack_speed": ["attack_damage"]
+        }
+      }
+    },
+    "ore": {
+      "type": "object",
+      "description": "Ore veins by name: [ore.ruby_ore] generates in the biomes it names (new chunks only).",
+      "propertyNames": { "$ref": "#/definitions/name" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["block", "size", "count", "min_y", "max_y"],
+        "properties": {
+          "block": { "$ref": "#/definitions/ref", "description": "The block it puts in stone, granite, diorite and andesite." },
+          "deepslate_block": { "$ref": "#/definitions/ref", "description": "The block it puts in deepslate and tuff; without it the vein skips them." },
+          "size": { "type": "integer", "minimum": 1, "maximum": 64, "description": "Blocks in a vein (coal 17, iron 9, diamond 4 to 12)." },
+          "count": { "type": "integer", "minimum": 1, "description": "Veins tried per chunk (iron's middle band 10, gold 4, diamond 7)." },
+          "min_y": { "type": "integer", "minimum": -64, "maximum": 319 },
+          "max_y": { "type": "integer", "minimum": -64, "maximum": 319 },
+          "shape": { "type": "string", "enum": ["uniform", "triangle"], "default": "uniform", "description": "triangle: most veins in the middle of the range, as iron's and diamond's." },
+          "discard_on_air": { "type": "number", "minimum": 0, "maximum": 1, "default": 0, "description": "Chance a block touching air is skipped (diamond 0.5)." },
+          "biomes": { "$ref": "#/definitions/biomes", "default": "#minecraft:is_overworld", "description": "Biome ids and #tags: #minecraft:is_overworld, #minecraft:is_nether, minecraft:desert." }
+        }
+      }
+    },
+    "armor": {
+      "type": "object",
+      "description": "Armour sets: [armor.ruby] makes <id>:ruby_helmet, _chestplate, _leggings, _boots. Textures: assets/<id>/textures/item/ruby_<piece>.png and assets/<id>/textures/entity/equipment/humanoid[_leggings]/ruby.png.",
+      "propertyNames": { "$ref": "#/definitions/name" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["durability", "defense"],
+        "properties": {
+          "name": { "type": "string", "description": "The set's name before each piece's: Ruby makes Ruby Helmet." },
+          "durability": { "type": "integer", "minimum": 1, "description": "Durability multiplier: leather 5, iron 15, diamond 33, netherite 37." },
+          "defense": { "type": "array", "items": { "type": "integer", "minimum": 0 }, "minItems": 4, "maxItems": 4, "description": "Armour of helmet, chestplate, leggings, boots: iron [2, 6, 5, 2], diamond [3, 8, 6, 3]." },
+          "toughness": { "type": "number", "minimum": 0, "description": "Per piece: diamond 2, netherite 3." },
+          "knockback_resistance": { "type": "number", "minimum": 0, "maximum": 1, "description": "Per piece: netherite 0.1." },
+          "repair": { "$ref": "#/definitions/refOrTag" },
+          "enchantability": { "type": "integer", "minimum": 0, "description": "Iron 9, diamond 10, gold 25, netherite 15." },
+          "equip_sound": { "type": "string", "default": "minecraft:item.armor.equip_iron" },
+          "rarity": { "$ref": "#/definitions/rarity" },
+          "pieces": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["helmet", "chestplate", "leggings", "boots"] } },
+          "creative_tabs": { "$ref": "#/definitions/creativeTabs" }
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "description": "Tool sets: [tools.ruby] makes <id>:ruby_sword, _pickaxe, _axe, _shovel, _hoe. Textures: assets/<id>/textures/item/ruby_<tool>.png.",
+      "propertyNames": { "$ref": "#/definitions/name" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tier", "durability", "speed", "damage"],
+        "properties": {
+          "name": { "type": "string", "description": "The set's name before each tool's: Ruby makes Ruby Pickaxe." },
+          "tier": { "type": "string", "enum": ["wood", "stone", "iron", "gold", "diamond", "netherite"], "description": "What they mine with drops, and the vanilla tools they copy." },
+          "durability": { "type": "integer", "minimum": 1, "description": "wood 59, stone 131, iron 250, gold 32, diamond 1561, netherite 2031." },
+          "speed": { "type": "number", "exclusiveMinimum": 0, "description": "Mining speed: wood 2, stone 4, iron 6, diamond 8, netherite 9, gold 12." },
+          "damage": { "type": "number", "minimum": 0, "description": "Attack bonus: wood and gold 0, stone 1, iron 2, diamond 3, netherite 4." },
+          "repair": { "$ref": "#/definitions/refOrTag" },
+          "enchantability": { "type": "integer", "minimum": 0 },
+          "rarity": { "$ref": "#/definitions/rarity" },
+          "pieces": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["sword", "pickaxe", "axe", "shovel", "hoe"] } },
+          "creative_tabs": { "$ref": "#/definitions/creativeTabs" }
+        }
+      }
+    },
+    "tag": {
+      "type": "object",
+      "description": "Tags by registry, then name: [tag.item.gems] is <id>:gems; [tag.block.\"minecraft:beacon_base_blocks\"] adds to vanilla's; [tag.\"worldgen/biome\".x] for biomes.",
+      "propertyNames": { "pattern": "^[a-z0-9_/]+$" },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "pattern": "^([a-z0-9_.-]+:)?[a-z0-9_./-]+$" },
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["values"],
+          "properties": {
+            "values": { "type": "array", "items": { "$ref": "#/definitions/refOrTag" }, "description": "Names of this mod's things, ids, and #tags." },
+            "replace": { "type": "boolean", "default": false, "description": "Drop what vanilla and the mods before put in it." }
+          }
+        }
+      }
+    },
+    "tab": {
+      "type": "object",
+      "description": "Creative tabs of the mod's own: [tab.ruby] is <id>:ruby, on the pages after vanilla's. Without any, the mod gets one tab holding all its items.",
+      "propertyNames": { "$ref": "#/definitions/name" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "description": "Its title; the mod's name by default." },
+          "icon": { "$ref": "#/definitions/ref", "description": "The item on its button; its first item by default." },
+          "items": { "type": "array", "items": { "$ref": "#/definitions/ref" }, "description": "What it holds, in order; every item of the mod by default." }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,119 @@
+# Ruby: an Inox mod (docs/inox-mods.md in the Horizon fork).
+# Ore in the overworld, smelted into ingots, a storage block, a sword, a full
+# armour set and the Ruby Apple. Recipes are in data/ruby/recipe/.
+[mod]
+id = "ruby"
+name = "Ruby"
+version = "1.0.0"
+description = "Ruby ore, ingots, a ruby block, sword and armour, and the Ruby Apple."
+authors = ["Xmilon"]
+
+# --- Blocks -------------------------------------------------------------
+
+[block.ruby_ore]
+template = "minecraft:iron_ore"
+name = "Ruby Ore"
+hardness = 3.5
+tool = "pickaxe"
+tier = "iron"
+tags = ["c:ores"]
+creative_tabs = ["minecraft:natural_blocks"]
+
+[block.deepslate_ruby_ore]
+template = "minecraft:deepslate_iron_ore"
+name = "Deepslate Ruby Ore"
+hardness = 5.0
+sounds = "minecraft:deepslate"
+tool = "pickaxe"
+tier = "iron"
+tags = ["c:ores"]
+creative_tabs = ["minecraft:natural_blocks"]
+
+[block.ruby_block]
+template = "minecraft:iron_block"
+name = "Block of Ruby"
+hardness = 5.0
+light = 2
+sounds = "minecraft:amethyst_block"
+tool = "pickaxe"
+tier = "iron"
+tags = ["minecraft:beacon_base_blocks"]
+creative_tabs = ["minecraft:building_blocks"]
+
+# --- Ore generation -------------------------------------------------------
+
+# Between iron and diamond: a little rarer than iron, mostly around Y -8.
+[ore.ruby_ore]
+block = "ruby_ore"
+deepslate_block = "deepslate_ruby_ore"
+size = 6
+count = 5
+min_y = -56
+max_y = 40
+shape = "triangle"
+discard_on_air = 0.3
+
+# --- Items ----------------------------------------------------------------
+
+[item.ruby_ingot]
+template = "minecraft:iron_ingot"
+name = "Ruby Ingot"
+rarity = "uncommon"
+tags = ["c:ingots", "minecraft:beacon_payment_items"]
+creative_tabs = ["minecraft:ingredients"]
+
+[item.ruby_sword]
+template = "minecraft:diamond_sword"
+name = "Ruby Sword"
+model = "handheld"
+durability = 1200
+attack_damage = 7.5
+attack_speed = 1.6
+repair = "ruby:ruby_ingot"
+enchantability = 12
+tags = ["minecraft:swords"]
+creative_tabs = ["minecraft:combat"]
+
+# The custom item: a golden-apple-like snack that heals and strengthens.
+[item.ruby_apple]
+template = "minecraft:golden_apple"
+name = "Ruby Apple"
+rarity = "rare"
+food = { nutrition = 6, saturation = 12.0, always_eat = true, effects = [
+  { id = "minecraft:regeneration", seconds = 8, level = 2 },
+  { id = "minecraft:strength", seconds = 30 },
+  { id = "minecraft:fire_resistance", seconds = 60 },
+] }
+creative_tabs = ["minecraft:food_and_drinks"]
+
+# --- Armour ---------------------------------------------------------------
+
+# Between iron (15, [2, 6, 5, 2]) and diamond (33, [3, 8, 6, 3]).
+[armor.ruby]
+name = "Ruby"
+durability = 25
+defense = [3, 7, 6, 2]
+toughness = 1.0
+repair = "ruby:ruby_ingot"
+enchantability = 12
+rarity = "uncommon"
+creative_tabs = ["minecraft:combat"]
+
+# --- Creative tab and tags -----------------------------------------------------
+
+# Its own tab, after vanilla's (without [tab], Inox makes one with every item).
+[tab.ruby]
+name = "Ruby"
+icon = "ruby_ingot"
+items = ["ruby_ore", "deepslate_ruby_ore", "ruby_block", "ruby_ingot", "ruby_sword",
+  "ruby_helmet", "ruby_chestplate", "ruby_leggings", "ruby_boots", "ruby_apple"]
+
+# The convention tags other mods look for (as on NeoForge and Fabric).
+[tag.item."c:ingots/ruby"]
+values = ["ruby_ingot"]
+
+[tag.block."c:ores/ruby"]
+values = ["ruby_ore", "deepslate_ruby_ore"]
+
+[tag.block."c:storage_blocks/ruby"]
+values = ["ruby_block"]

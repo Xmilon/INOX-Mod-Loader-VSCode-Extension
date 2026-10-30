@@ -1,0 +1,117 @@
+{
+  "name": "inox-tools",
+  "displayName": "Inox Mod Tools (Horizon)",
+  "description": "Make Inox mods for Horizon: inox.toml autocomplete and checks, run your mod in the game from VS Code like a dev build, build and install the .imod.",
+  "version": "0.1.0",
+  "publisher": "xmilon",
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/Xmilon/INOX-Mod-Loader-VSCode-Extension" },
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Debuggers", "Programming Languages", "Other"],
+  "keywords": ["horizon", "minecraft", "mod", "inox", "imod"],
+  "main": "./src/extension.js",
+  "extensionDependencies": ["tamasfe.even-better-toml"],
+  "activationEvents": [
+    "workspaceContains:inox.toml",
+    "workspaceContains:*/inox.toml",
+    "onDebugResolve:inox",
+    "onDebugDynamicConfigurations:inox",
+    "onDebugInitialConfigurations"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "inox.run", "title": "Run in Horizon", "category": "Inox", "icon": "$(play)" },
+      { "command": "inox.build", "title": "Build .imod", "category": "Inox", "icon": "$(package)" },
+      { "command": "inox.install", "title": "Build and Install into Horizon", "category": "Inox" },
+      { "command": "inox.newMod", "title": "New Mod", "category": "Inox" },
+      { "command": "inox.pickResources", "title": "Choose the Game Resources", "category": "Inox" }
+    ],
+    "menus": {
+      "editor/title/run": [
+        { "command": "inox.run", "when": "resourceFilename == inox.toml", "group": "navigation@0" }
+      ],
+      "editor/title": [
+        { "command": "inox.build", "when": "resourceFilename == inox.toml", "group": "navigation@1" }
+      ]
+    },
+    "keybindings": [
+      { "command": "inox.build", "key": "ctrl+f9", "mac": "cmd+f9", "when": "resourceFilename == inox.toml" }
+    ],
+    "taskDefinitions": [
+      { "type": "inox", "required": ["name"], "properties": { "name": { "type": "string" } } }
+    ],
+    "debuggers": [
+      {
+        "type": "inox",
+        "label": "Horizon (Inox mod)",
+        "languages": ["toml"],
+        "configurationAttributes": {
+          "launch": {
+            "required": ["mod"],
+            "properties": {
+              "mod": { "type": "string", "default": "${workspaceFolder}", "description": "The mod's folder (holding inox.toml), loaded with --dev-mod: no build needed." },
+              "world": { "type": "string", "default": "Inox Test", "description": "The world to open or create in the run folder; none starts at the title screen." },
+              "creative": { "type": "boolean", "default": true, "description": "A new world in creative mode." },
+              "args": { "type": "array", "items": { "type": "string" }, "default": [], "description": "More arguments for horizon-client (--seed 123, --width 1600...)." },
+              "env": { "type": "object", "additionalProperties": { "type": "string" }, "default": {}, "description": "Environment variables for the game." }
+            }
+          }
+        },
+        "initialConfigurations": [
+          { "type": "inox", "request": "launch", "name": "Run in Horizon", "mod": "${workspaceFolder}", "world": "Inox Test", "creative": true }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Inox: Run in Horizon",
+            "description": "Run the mod in Horizon, in the run/ folder",
+            "body": { "type": "inox", "request": "launch", "name": "Run in Horizon", "mod": "^\"\\${workspaceFolder}\"", "world": "Inox Test", "creative": true }
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "Inox",
+      "properties": {
+        "inox.client": {
+          "type": "string",
+          "default": "${env:APPDATA}/horizon/inox-indev/horizon-client.exe",
+          "markdownDescription": "The Horizon client with the Inox loader (your build of the fork). `${env:NAME}` and `~` are expanded."
+        },
+        "inox.resources": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "The prepared game resources (`.../.local/horizon-client/26.3`). Empty: picked from the launcher's prepared versions on the first run, then kept here. **Inox: Choose the Game Resources** picks again."
+        },
+        "inox.launcherDir": {
+          "type": "string",
+          "default": "${env:APPDATA}/horizon-launcher",
+          "markdownDescription": "The Horizon launcher's data folder, where prepared versions are looked for."
+        },
+        "inox.gameDir": {
+          "type": "string",
+          "default": "${workspaceFolder}/run",
+          "markdownDescription": "The game folder runs use (worlds, options, logs), away from your real game. `${workspaceFolder}` is the mod's folder."
+        },
+        "inox.installDir": {
+          "type": "string",
+          "default": "${env:APPDATA}/horizon/horizon-mods",
+          "markdownDescription": "Where **Build and Install** copies the `.imod`: your real game's `horizon-mods` folder."
+        },
+        "inox.cargoHorizonMod": {
+          "type": "string",
+          "default": "cargo horizon-mod",
+          "markdownDescription": "The `cargo horizon-mod` command (from the fork) that builds and makes mods."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "package": "vsce package --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.2.1",
+    "ajv": "^8.17.1",
+    "smol-toml": "^1.3.1"
+  }
+}
