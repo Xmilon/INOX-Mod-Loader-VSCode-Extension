@@ -26,7 +26,7 @@ const schema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
   title: 'horizon-mixin.toml',
   description:
-    'A Horizon native mod (.hnmod): a horizon-mixins bundle, or an API mod ([api], no [[injection]]). Reference: docs/native-mods.md in Horizon.',
+    'A Horizon native mod (.hnmod): a horizon-mixins bundle. Reference: docs/native-mods.md in Horizon.',
   type: 'object',
   required: ['mod'],
   properties: {
@@ -48,21 +48,6 @@ const schema = {
           pattern: '^[0-9a-f]{40}$',
           description:
             'The Horizon commit it was made and tested on (40 hex digits). Needed to pack an .hnmod and for the registry.',
-        },
-      },
-    },
-    api: {
-      type: 'object',
-      description:
-        'An API mod: no mixin. Its crate implements horizon_mod_api::Mod and the game calls it after its hook points, so building it never recompiles horizon-client. It may have no [[injection]].',
-      required: ['crate', 'entry'],
-      additionalProperties: false,
-      properties: {
-        crate: { ...id, description: 'The [[crate]] (its id) holding the mod.' },
-        entry: {
-          type: 'string',
-          pattern: '^[A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)*$',
-          description: 'A public fn() -> Box<dyn horizon_mod_api::Mod> in that crate (create).',
         },
       },
     },
@@ -110,7 +95,7 @@ const schema = {
         required: ['id', 'path'],
         additionalProperties: false,
         properties: {
-          id: { ...id, description: 'The crate id ([api] crate names it).' },
+          id: { ...id, description: 'The crate id.' },
           path: { type: 'string', minLength: 1, description: 'Its folder in the bundle, holding Cargo.toml.' },
           dependent: { type: 'string', description: 'The package that depends on it (horizon-client by default).' },
         },
@@ -131,9 +116,7 @@ const schema = {
       },
     },
   },
-  // An API mod has no injection (the launcher refuses one).
-  if: { required: ['api'] },
-  then: { not: { required: ['injection'] } },
+  not: { required: ['api'] },
 };
 
 fs.writeFileSync(path.join(root, 'schemas', 'horizon-mixin.schema.json'), `${JSON.stringify(schema, null, 2)}\n`);

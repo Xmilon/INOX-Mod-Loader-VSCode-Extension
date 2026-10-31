@@ -119,12 +119,8 @@ function nativeManifest(mixin, { game = '26.3', mixins = MIXINS_REV } = {}) {
     };
   }
   const manifest = { schema: 1, id: mod.id, version: String(mod.version), game, horizon, mixins };
-  if (mixin.api) {
-    if (mixin.injection) return { error: 'An API mod ([api]) has no [[injection]].' };
-    if (!(mixin.crate || []).some((c) => c.id === mixin.api.crate)) {
-      return { error: `[api] crate "${mixin.api.crate}" is not a [[crate]] of horizon-mixin.toml.` };
-    }
-    manifest.api = { crate: mixin.api.crate, entry: mixin.api.entry };
+  if (Object.hasOwn(mixin, 'api')) {
+    return { error: 'The experimental [api] format was retired. Use a native mixin mod with catalog hooks.' };
   }
   return { manifest };
 }

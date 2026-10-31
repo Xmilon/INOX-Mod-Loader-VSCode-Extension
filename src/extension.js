@@ -1,6 +1,6 @@
 // Horizon Mod Tools: makes, checks, builds, installs and runs Horizon mods of every kind:
 //  - content mods (horizon-mod.toml, .hmod): data and assets, no code;
-//  - native mods (horizon-mixin.toml, .hnmod): mixin mods, and API mods ([api], no mixin);
+//  - native mods (horizon-mixin.toml, .hnmod): mixin mods;
 //  - Inox mods (inox.toml, .imod) of the Inox fork.
 // Run is like a dev build in IntelliJ (the "inox" debug type: F5, the Run view, the editor's play
 // button). The TOML manifests are checked by Even Better TOML against the bundled schemas
@@ -279,21 +279,10 @@ function writeTemplate(context, kind, dir, values) {
   copy(context.asAbsolutePath(path.join('templates', kind)), dir);
 }
 
-/** Where horizon-mod-api comes from for the editor: Horizon's checkout when set, else its version. */
-function apiDependency(mod) {
-  const source = expand(config().get('horizonSource'), mod);
-  const crate = source && path.join(source, 'crates', 'horizon-mod-api');
-  if (crate && fs.existsSync(path.join(crate, 'Cargo.toml'))) {
-    return `{ path = ${JSON.stringify(crate.replace(/\\/g, '/'))} }`;
-  }
-  return '"0.1"';
-}
-
 async function newMod(context) {
   const kind = await vscode.window.showQuickPick(
     [
       { label: 'Content mod', description: '.hmod: blocks, items, mob effects, recipes. No code.', kind: 'content' },
-      { label: 'API mod', description: '.hnmod without mixins: Rust events, rebuilds in seconds.', kind: 'api' },
       { label: 'Mixin mod', description: '.hnmod: code injected at the hook points. Recompiles the game.', kind: 'mixin' },
       { label: 'Inox mod', description: '.imod of the Inox fork: inox.toml shorthands.', kind: 'inox' },
     ],
@@ -326,7 +315,6 @@ async function newMod(context) {
       id: lib.idFromName(name),
       name,
       revision: config().get('horizonRevision') || '0'.repeat(40),
-      api_dependency: apiDependency(dir),
     });
     if (!config().get('horizonRevision')) {
       vscode.window.showWarningMessage(

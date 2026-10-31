@@ -13,10 +13,10 @@ const errors = (validate, value) => (validate(value) ? [] : validate.errors.map(
 
 const REV = 'a'.repeat(40);
 
-test('horizon-mixin.toml: templates, hook names and the API rules', () => {
+test('horizon-mixin.toml: templates, hook names and retired API rejection', () => {
   const mixin = schema('horizon-mixin.schema.json');
   const check = (toml) => errors(mixin, parse(toml));
-  for (const kind of ['api', 'mixin']) {
+  for (const kind of ['mixin']) {
     const text = fs
       .readFileSync(path.join(__dirname, '..', 'templates', kind, 'horizon-mixin.toml'), 'utf8')
       .replace(/\{id\}/g, 'demo')
@@ -25,12 +25,13 @@ test('horizon-mixin.toml: templates, hook names and the API rules', () => {
   }
   const fixture = '[mod]\nid = "x"\nversion = "1"\n';
   assert.deepStrictEqual(check(`${fixture}[[injection]]\nid = "t"\nhook = "use_item"\nkind = "HEAD"\nhelper = "t.rs"\n`), []);
-  // An unknown hook name, an API mod with an injection, a bad revision.
+  // An unknown hook name, a retired API mod, a bad revision.
   assert.notDeepStrictEqual(check(`${fixture}[[injection]]\nid = "t"\nhook = "use_itme"\nkind = "HEAD"\nhelper = "t.rs"\n`), []);
   assert.notDeepStrictEqual(
     check(`${fixture}[api]\ncrate = "e"\nentry = "create"\n[[injection]]\nid = "t"\nhook = "tick"\nkind = "HEAD"\nhelper = "t.rs"\n`),
     [],
   );
+  assert.notDeepStrictEqual(check(`${fixture}[api]\ncrate = \"e\"\nentry = \"create\"\n`), []);
   assert.notDeepStrictEqual(check(`${fixture}[compatibility]\nhorizon_revision = "main"\n`), []);
 });
 
@@ -69,8 +70,9 @@ test('data files: blocks, items, mob effects and creative tabs', () => {
 
 test('horizon-native.json: as the launcher writes it, unknown keys refused', () => {
   const native = schema('horizon-native.schema.json');
-  const good = { schema: 1, id: 'wand', version: '1', game: '26.3', horizon: REV, mixins: REV, api: { crate: 'engine', entry: 'create' } };
+  const good = { schema: 1, id: 'wand', version: '1', game: '26.3', horizon: REV, mixins: REV };
   assert.deepStrictEqual(errors(native, good), []);
   assert.notDeepStrictEqual(errors(native, { ...good, schema: 2 }), []);
   assert.notDeepStrictEqual(errors(native, { ...good, extra: true }), []);
+  assert.notDeepStrictEqual(errors(native, { ...good, api: { crate: 'engine', entry: 'create' } }), []);
 });

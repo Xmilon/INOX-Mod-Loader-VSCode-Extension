@@ -16,16 +16,6 @@
       "type": "integer",
       "minimum": 1,
       "description": "The hook points' version (NATIVE_HOOKS_API) it needs: it then builds on any Horizon with that version or later."
-    },
-    "api": {
-      "type": "object",
-      "description": "An API mod (no mixins): its crate and entry function.",
-      "additionalProperties": false,
-      "required": ["crate", "entry"],
-      "properties": {
-        "crate": { "type": "string", "pattern": "^[a-z0-9_]{1,64}$" },
-        "entry": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)*$" }
-      }
     }
   }
 }

@@ -1,5 +1,5 @@
 # A mixin mod for Horizon (docs/native-mods.md): code injected into the game at its hook points.
-# Building it recompiles horizon-client; an API mod ([api]) doesn't.
+# Building it recompiles horizon-client.
 [mod]
 id = "{id}"
 version = "0.1.0"

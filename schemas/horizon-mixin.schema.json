@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "horizon-mixin.toml",
-  "description": "A Horizon native mod (.hnmod): a horizon-mixins bundle, or an API mod ([api], no [[injection]]). Reference: docs/native-mods.md in Horizon.",
+  "description": "A Horizon native mod (.hnmod): a horizon-mixins bundle. Reference: docs/native-mods.md in Horizon.",
   "type": "object",
   "required": [
     "mod"
@@ -35,27 +35,6 @@
           "type": "string",
           "pattern": "^[0-9a-f]{40}$",
           "description": "The Horizon commit it was made and tested on (40 hex digits). Needed to pack an .hnmod and for the registry."
-        }
-      }
-    },
-    "api": {
-      "type": "object",
-      "description": "An API mod: no mixin. Its crate implements horizon_mod_api::Mod and the game calls it after its hook points, so building it never recompiles horizon-client. It may have no [[injection]].",
-      "required": [
-        "crate",
-        "entry"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "crate": {
-          "type": "string",
-          "pattern": "^[a-z0-9_]{1,64}$",
-          "description": "The [[crate]] (its id) holding the mod."
-        },
-        "entry": {
-          "type": "string",
-          "pattern": "^[A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)*$",
-          "description": "A public fn() -> Box<dyn horizon_mod_api::Mod> in that crate (create)."
         }
       }
     },
@@ -189,6 +168,10 @@
               {
                 "const": "is_signal_source",
                 "description": "Hook point `is_signal_source` v1: `native_is_signal_source`."
+              },
+              {
+                "const": "item_bar",
+                "description": "Hook point `item_bar` v1: `native_item_bar`."
               },
               {
                 "const": "item_dropped",
@@ -472,7 +455,7 @@
           "id": {
             "type": "string",
             "pattern": "^[a-z0-9_]{1,64}$",
-            "description": "The crate id ([api] crate names it)."
+            "description": "The crate id."
           },
           "path": {
             "type": "string",
@@ -513,16 +496,9 @@
       }
     }
   },
-  "if": {
+  "not": {
     "required": [
       "api"
     ]
-  },
-  "then": {
-    "not": {
-      "required": [
-        "injection"
-      ]
-    }
   }
 }

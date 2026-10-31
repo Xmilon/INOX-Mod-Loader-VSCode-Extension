@@ -1,8 +1,8 @@
 {
   "name": "inox-tools",
   "displayName": "Horizon Mod Tools (Inox)",
-  "description": "Make Horizon mods in VS Code: content mods (.hmod), native mixin and API mods (.hnmod) and Inox mods (.imod). Checks and autocomplete for every manifest and data file, hook-point names, run in the game like a dev build, build, check and install.",
-  "version": "0.2.0",
+  "description": "Make Horizon mods in VS Code: content mods (.hmod), native mixin mods (.hnmod) and Inox mods (.imod). Checks and autocomplete for every manifest and data file, hook-point names, run in the game like a dev build, build, check and install.",
+  "version": "0.2.1",
   "publisher": "xmilon",
   "license": "MIT",
   "repository": {
@@ -236,11 +236,6 @@
           "default": "",
           "pattern": "^([0-9a-f]{40})?$",
           "markdownDescription": "The Horizon commit (40 hex digits) new native mods are made for: written in their `[compatibility] horizon_revision`, which building an `.hnmod` needs."
-        },
-        "inox.horizonSource": {
-          "type": "string",
-          "default": "",
-          "markdownDescription": "A Horizon checkout with `crates/horizon-mod-api`: new API mods point their `horizon-mod-api` dependency at it, so rust-analyzer completes the API. The launcher replaces it when it builds."
         },
         "inox.mixinsRevision": {
           "type": "string",

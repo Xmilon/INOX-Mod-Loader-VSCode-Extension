@@ -31,10 +31,11 @@ function unzip(buf) {
   return out;
 }
 
-function apiMod() {
+function mixinMod() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hnmod-'));
   const files = {
-    'horizon-mixin.toml': `[mod]\nid = "wand"\nversion = "0.1.0"\n[compatibility]\nhorizon_revision = "${REV}"\n[api]\ncrate = "engine"\nentry = "create"\n[[crate]]\nid = "engine"\npath = "engine"\n`,
+    'horizon-mixin.toml': `[mod]\nid = "wand"\nversion = "0.1.0"\n[compatibility]\nhorizon_revision = "${REV}"\n[[injection]]\nid = "tick"\nhook = "tick"\nkind = "HEAD"\nhelper = "tick.rs"\n[[crate]]\nid = "engine"\npath = "engine"\n`,
+    'tick.rs': 'fn tick() {}\n',
     'engine/Cargo.toml': '[package]\nname = "wand-engine"\n',
     'engine/src/lib.rs': 'pub fn create() {}\n',
     'engine/target/debug/out.rs': 'build output',
@@ -58,8 +59,8 @@ test('the kind of a mod folder comes from its manifest', () => {
   fs.rmSync(dir, { recursive: true });
 });
 
-test('an API mod packs as the launcher packs it, the same bytes each time', () => {
-  const dir = apiMod();
+test('a mixin mod packs as the launcher packs it, the same bytes each time', () => {
+  const dir = mixinMod();
   const mixin = parse(fs.readFileSync(path.join(dir, 'horizon-mixin.toml'), 'utf8'));
   const packed = lib.packNative(dir, mixin);
   assert.strictEqual(packed.id, 'wand');
@@ -70,6 +71,7 @@ test('an API mod packs as the launcher packs it, the same bytes each time', () =
     'mixins/wand/engine/Cargo.toml',
     'mixins/wand/engine/src/lib.rs',
     'mixins/wand/horizon-mixin.toml',
+    'mixins/wand/tick.rs',
   ]);
   assert.deepStrictEqual(JSON.parse(files['horizon-native.json']), {
     schema: 1,
@@ -78,7 +80,6 @@ test('an API mod packs as the launcher packs it, the same bytes each time', () =
     game: '26.3',
     horizon: REV,
     mixins: lib.MIXINS_REV,
-    api: { crate: 'engine', entry: 'create' },
   });
   assert.ok(lib.packNative(dir, mixin).bytes.equals(packed.bytes));
   fs.rmSync(dir, { recursive: true });
@@ -89,9 +90,9 @@ test('a native mod the launcher would refuse is not packed', () => {
   assert.match(lib.nativeManifest({ ...base, compatibility: {} }).error, /horizon_revision/);
   assert.match(lib.nativeManifest({ ...base, mod: { id: 'Wand', version: '1' } }).error, /id/);
   const api = { ...base, api: { crate: 'engine', entry: 'create' } };
-  assert.match(lib.nativeManifest(api).error, /not a \[\[crate\]\]/);
+  assert.match(lib.nativeManifest(api).error, /retired/);
   const injected = { ...api, crate: [{ id: 'engine', path: 'engine' }], injection: [{ id: 'f' }] };
-  assert.match(lib.nativeManifest(injected).error, /no \[\[injection\]\]/);
+  assert.match(lib.nativeManifest(injected).error, /retired/);
   assert.deepStrictEqual(lib.nativeManifest(base).manifest.api, undefined);
 });
 
