@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "horizon-native.json",
+  "description": "The manifest of an .hnmod (Horizon native mod). Unknown keys are refused. Reference: docs/native-mods.md in Horizon.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "version", "game", "horizon", "mixins"],
+  "properties": {
+    "schema": { "const": 1 },
+    "id": { "type": "string", "pattern": "^[a-z0-9_]{1,64}$" },
+    "version": { "type": "string", "minLength": 1 },
+    "game": { "type": "string", "minLength": 1, "examples": ["26.3"] },
+    "horizon": { "type": "string", "pattern": "^[0-9a-f]{40}$", "description": "The exact Horizon commit it was tested on." },
+    "mixins": { "type": "string", "pattern": "^[0-9a-f]{40}$", "description": "The exact horizon-mixins commit it was tested with." },
+    "hooks": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The hook points' version (NATIVE_HOOKS_API) it needs: it then builds on any Horizon with that version or later."
+    },
+    "api": {
+      "type": "object",
+      "description": "An API mod (no mixins): its crate and entry function.",
+      "additionalProperties": false,
+      "required": ["crate", "entry"],
+      "properties": {
+        "crate": { "type": "string", "pattern": "^[a-z0-9_]{1,64}$" },
+        "entry": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)*$" }
+      }
+    }
+  }
+}

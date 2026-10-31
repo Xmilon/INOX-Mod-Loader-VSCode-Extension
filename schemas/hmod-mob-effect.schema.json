@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Content mod mob effect (data/<id>/horizon/mob_effect/<name>.json)",
+  "description": "A mob effect <id>:<name>: /effect give @s <id>:<name> 30. Its name is effect.<id>.<name> in the mod's lang, its icon assets/<id>/textures/mob_effect/<name>.png (18x18). What it does comes from a native mod (hook level 56). Reference: docs/mods.md in Horizon.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["category", "color"],
+  "properties": {
+    "category": { "enum": ["beneficial", "harmful", "neutral"], "description": "As vanilla's MobEffectCategory." },
+    "color": { "type": "integer", "minimum": 0, "maximum": 16777215, "description": "Its RGB colour, 0 to 0xFFFFFF (16777215): its particles take it." }
+  }
+}

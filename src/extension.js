@@ -1,24 +1,36 @@
-// Inox Mod Tools: runs an Inox mod in Horizon like a dev build in IntelliJ
-// (the "inox" debug type: F5, the Run view, the editor's play button),
-// builds and installs the .imod, and makes new mods. inox.toml is checked
-// against schemas/inox.schema.json by Even Better TOML (`linkSchema`).
+// Horizon Mod Tools: makes, checks, builds, installs and runs Horizon mods of every kind:
+//  - content mods (horizon-mod.toml, .hmod): data and assets, no code;
+//  - native mods (horizon-mixin.toml, .hnmod): mixin mods, and API mods ([api], no mixin);
+//  - Inox mods (inox.toml, .imod) of the Inox fork.
+// Run is like a dev build in IntelliJ (the "inox" debug type: F5, the Run view, the editor's play
+// button). The TOML manifests are checked by Even Better TOML against the bundled schemas
+// (`linkSchemas`); the JSON files by VS Code itself (package.json's jsonValidation).
 const vscode = require('vscode');
 const cp = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { expand, findResources, launchArgs, modId } = require('./lib');
+const { parse } = require('smol-toml');
+const lib = require('./lib');
+const { expand, findResources, launchArgs, modId, MANIFESTS, modKind, topLevelId } = lib;
 
 const TYPE = 'inox';
 const config = () => vscode.workspace.getConfiguration('inox');
+const KIND_NAMES = { inox: 'Inox mod (.imod)', content: 'content mod (.hmod)', native: 'native mod (.hnmod)' };
+const NO_MOD =
+  'Open a Horizon mod first: a folder holding horizon-mod.toml (content), horizon-mixin.toml (native) or inox.toml (Inox).';
 
-/** The folder of the mod to work on: the open inox.toml's, else a workspace folder holding one. */
+/** The folder of the mod to work on: the open manifest's, else a workspace folder holding one. */
 function modFolder() {
   const doc = vscode.window.activeTextEditor?.document;
-  if (doc && path.basename(doc.fileName) === 'inox.toml') return path.dirname(doc.fileName);
-  const folder = (vscode.workspace.workspaceFolders || []).find((f) =>
-    fs.existsSync(path.join(f.uri.fsPath, 'inox.toml')),
-  );
+  if (doc && Object.values(MANIFESTS).includes(path.basename(doc.fileName))) return path.dirname(doc.fileName);
+  const folder = (vscode.workspace.workspaceFolders || []).find((f) => modKind(f.uri.fsPath));
   return folder?.uri.fsPath;
+}
+
+/** The mod's id, from its manifest. */
+function idOf(mod, kind) {
+  const text = fs.readFileSync(path.join(mod, MANIFESTS[kind]), 'utf8');
+  return kind === 'content' ? topLevelId(text) : modId(text);
 }
 
 /** The default run configuration, as launch.json would hold it. */
@@ -28,7 +40,7 @@ function defaultConfig() {
     request: 'launch',
     name: 'Run in Horizon',
     mod: '${workspaceFolder}',
-    world: 'Inox Test',
+    world: 'Mod Test',
     creative: true,
   };
 }
@@ -58,26 +70,41 @@ async function resources(workspaceFolder) {
 }
 
 /** F5 with no launch.json: the default configuration for the open mod. */
-function fill(_folder, cfg) {
+function fillConfig(_folder, cfg) {
   if (cfg.type || cfg.request || cfg.name) return cfg;
   const mod = modFolder();
   return mod ? { ...defaultConfig(), mod } : undefined;
 }
 
+/** The client a kind of mod runs in: content mods in Horizon's, Inox mods in the fork's. */
+function clientFor(kind, workspaceFolder) {
+  const key = kind === 'inox' ? 'client' : 'horizonClient';
+  return { key, program: expand(config().get(key), workspaceFolder) };
+}
+
 /** Resolves a run configuration into the game's program and arguments, or undefined with a message. */
 async function resolve(folder, cfg) {
   const workspaceFolder = folder?.uri.fsPath || cfg.mod;
-  if (!fs.existsSync(path.join(cfg.mod, 'inox.toml'))) {
-    vscode.window.showErrorMessage(`No inox.toml in ${cfg.mod}: "mod" is the folder of an Inox mod.`);
+  const kind = modKind(cfg.mod);
+  if (!kind) {
+    vscode.window.showErrorMessage(`No mod in ${cfg.mod}. ${NO_MOD}`);
     return undefined;
   }
-  const program = expand(config().get('client'), workspaceFolder);
+  if (kind === 'native') {
+    const pick = await vscode.window.showInformationMessage(
+      'A native mod is compiled into the game by the Horizon launcher: build it here (.hnmod), install it, then build the game in the launcher (Mods page, or horizon-launcher native-build).',
+      'Build and Install',
+    );
+    if (pick) install();
+    return undefined;
+  }
+  const { key, program } = clientFor(kind, workspaceFolder);
   if (!fs.existsSync(program)) {
     const open = await vscode.window.showErrorMessage(
-      `The Horizon client ${program} doesn't exist. Set inox.client to your Inox build of horizon-client.`,
+      `The Horizon client ${program} doesn't exist. Set inox.${key} to the horizon-client to run ${KIND_NAMES[kind]}s in.`,
       'Open Settings',
     );
-    if (open) vscode.commands.executeCommand('workbench.action.openSettings', 'inox.client');
+    if (open) vscode.commands.executeCommand('workbench.action.openSettings', `inox.${key}`);
     return undefined;
   }
   const res = await resources(workspaceFolder);
@@ -153,13 +180,13 @@ class GameSession {
   }
 }
 
-/** Runs `command` in the mod folder as a task in the terminal; resolves to its exit code. */
+/** Runs `command` in `cwd` as a task in the terminal; resolves to its exit code. */
 async function runTask(name, command, cwd) {
   const task = new vscode.Task(
     { type: TYPE, name },
     vscode.TaskScope.Workspace,
     name,
-    'inox',
+    'horizon',
     new vscode.ShellExecution(command, { cwd }),
   );
   const execution = await vscode.tasks.executeTask(task);
@@ -173,25 +200,106 @@ async function runTask(name, command, cwd) {
   });
 }
 
+/** Packs a native mod's .hnmod into target/horizon-mod/, as the launcher and the registry pack it. */
+function buildNative(mod) {
+  let mixin;
+  try {
+    mixin = parse(fs.readFileSync(path.join(mod, MANIFESTS.native), 'utf8'));
+  } catch (e) {
+    vscode.window.showErrorMessage(`horizon-mixin.toml: ${e.message}`);
+    return undefined;
+  }
+  let packed;
+  try {
+    packed = lib.packNative(mod, mixin, { mixins: config().get('mixinsRevision') || lib.MIXINS_REV });
+  } catch (e) {
+    packed = { error: e.message };
+  }
+  if (packed.error) {
+    vscode.window.showErrorMessage(`Can't build the .hnmod: ${packed.error}`);
+    return undefined;
+  }
+  const out = path.join(mod, 'target', 'horizon-mod');
+  fs.mkdirSync(out, { recursive: true });
+  const file = path.join(out, `${packed.id}.hnmod`);
+  fs.writeFileSync(file, packed.bytes);
+  vscode.window.setStatusBarMessage(`Built ${path.basename(file)}`, 5000);
+  return file;
+}
+
+/** Builds the open mod; the built file, or undefined. */
 async function build() {
   const mod = modFolder();
-  if (!mod) return vscode.window.showErrorMessage('Open an Inox mod (a folder holding inox.toml) first.');
-  const code = await runTask('Build .imod', `${config().get('cargoHorizonMod')} build`, mod);
+  if (!mod) return vscode.window.showErrorMessage(NO_MOD);
+  const kind = modKind(mod);
+  if (kind === 'native') return buildNative(mod);
+  const ext = kind === 'inox' ? 'imod' : 'hmod';
+  const code = await runTask(`Build .${ext}`, `${config().get('cargoHorizonMod')} build`, mod);
   if (code !== 0) return undefined;
-  const id = modId(fs.readFileSync(path.join(mod, 'inox.toml'), 'utf8'));
-  return path.join(mod, 'target', 'horizon-mod', `${id}.imod`);
+  return path.join(mod, 'target', 'horizon-mod', `${idOf(mod, kind)}.${ext}`);
 }
 
+/** Builds, then copies into the game folder: horizon-mods/ (content, Inox), horizon-native-mods/ (native). */
 async function install() {
-  const imod = await build();
-  if (!imod || !fs.existsSync(imod)) return;
-  const dir = expand(config().get('installDir'), modFolder());
+  const mod = modFolder();
+  const file = await build();
+  if (typeof file !== 'string' || !fs.existsSync(file)) return;
+  const kind = modKind(mod);
+  const dir = expand(config().get(kind === 'native' ? 'nativeInstallDir' : 'installDir'), mod);
   fs.mkdirSync(dir, { recursive: true });
-  fs.copyFileSync(imod, path.join(dir, path.basename(imod)));
-  vscode.window.showInformationMessage(`Installed ${path.basename(imod)} in ${dir}. Restart Horizon to load it.`);
+  fs.copyFileSync(file, path.join(dir, path.basename(file)));
+  const next = {
+    native: 'Build the game with it in the Horizon launcher (Mods page), then play.',
+    content: 'Turn it on in Options > Mods (mods start off), then restart Horizon.',
+    inox: 'Restart Horizon to load it.',
+  }[kind];
+  vscode.window.showInformationMessage(`Installed ${path.basename(file)} in ${dir}. ${next}`);
 }
 
-async function newMod() {
+/** Checks the built file as the mod registry does (`cargo horizon-mod check`). */
+async function check() {
+  const file = await build();
+  if (typeof file !== 'string' || !fs.existsSync(file)) return;
+  await runTask('Check mod', `${config().get('cargoHorizonMod')} check "${file}"`, path.dirname(file));
+}
+
+/** Writes the template `kind` (templates/<kind>/) into `dir`, filling its placeholders. */
+function writeTemplate(context, kind, dir, values) {
+  const copy = (src, dst) => {
+    for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+      const s = path.join(src, e.name);
+      const d = path.join(dst, e.name);
+      if (e.isDirectory()) copy(s, d);
+      else {
+        fs.mkdirSync(dst, { recursive: true });
+        fs.writeFileSync(d, lib.fill(fs.readFileSync(s, 'utf8'), values));
+      }
+    }
+  };
+  copy(context.asAbsolutePath(path.join('templates', kind)), dir);
+}
+
+/** Where horizon-mod-api comes from for the editor: Horizon's checkout when set, else its version. */
+function apiDependency(mod) {
+  const source = expand(config().get('horizonSource'), mod);
+  const crate = source && path.join(source, 'crates', 'horizon-mod-api');
+  if (crate && fs.existsSync(path.join(crate, 'Cargo.toml'))) {
+    return `{ path = ${JSON.stringify(crate.replace(/\\/g, '/'))} }`;
+  }
+  return '"0.1"';
+}
+
+async function newMod(context) {
+  const kind = await vscode.window.showQuickPick(
+    [
+      { label: 'Content mod', description: '.hmod: blocks, items, mob effects, recipes. No code.', kind: 'content' },
+      { label: 'API mod', description: '.hnmod without mixins: Rust events, rebuilds in seconds.', kind: 'api' },
+      { label: 'Mixin mod', description: '.hnmod: code injected at the hook points. Recompiles the game.', kind: 'mixin' },
+      { label: 'Inox mod', description: '.imod of the Inox fork: inox.toml shorthands.', kind: 'inox' },
+    ],
+    { placeHolder: 'What kind of mod?' },
+  );
+  if (!kind) return;
   const name = await vscode.window.showInputBox({
     prompt: 'The new mod folder name (its id is made from it: lowercase, _)',
     validateInput: (v) => (/^[A-Za-z0-9_-]+$/.test(v) ? undefined : 'Letters, digits, - and _'),
@@ -204,34 +312,61 @@ async function newMod() {
   });
   if (!parent) return;
   const dir = path.join(parent[0].fsPath, name);
-  const code = await runTask('New Inox mod', `${config().get('cargoHorizonMod')} new "${dir}" --template inox`, parent[0].fsPath);
-  if (code !== 0) return;
+  if (fs.existsSync(dir)) return vscode.window.showErrorMessage(`${dir} already exists.`);
+  if (kind.kind === 'content' || kind.kind === 'inox') {
+    const template = kind.kind === 'inox' ? ' --template inox' : '';
+    const code = await runTask(
+      `New ${kind.label}`,
+      `${config().get('cargoHorizonMod')} new "${dir}"${template}`,
+      parent[0].fsPath,
+    );
+    if (code !== 0) return;
+  } else {
+    writeTemplate(context, kind.kind, dir, {
+      id: lib.idFromName(name),
+      name,
+      revision: config().get('horizonRevision') || '0'.repeat(40),
+      api_dependency: apiDependency(dir),
+    });
+    if (!config().get('horizonRevision')) {
+      vscode.window.showWarningMessage(
+        'Set [compatibility] horizon_revision in horizon-mixin.toml to the Horizon commit the mod is for (or the setting inox.horizonRevision for new mods): building the .hnmod needs it.',
+      );
+    }
+  }
   // The game folder runs make stays out of git.
-  fs.appendFileSync(path.join(dir, '.gitignore'), 'run/\n');
+  const ignore = path.join(dir, '.gitignore');
+  if (!fs.existsSync(ignore) || !fs.readFileSync(ignore, 'utf8').includes('run/')) fs.appendFileSync(ignore, 'run/\n');
   vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(dir));
 }
 
 /**
- * Points Even Better TOML at the bundled schema for every inox.toml. Its
- * `tomlValidation` contributions need an absolute URI, which a packaged
- * extension can't name, so the association is kept in the user's settings
- * and updated when the extension's folder changes (an update).
+ * Points Even Better TOML at the bundled schemas of the TOML manifests. Its `tomlValidation`
+ * contributions need an absolute URI, which a packaged extension can't name, so the associations
+ * are kept in the user's settings and updated when the extension's folder changes (an update).
  */
-function linkSchema(context) {
-  const key = String.raw`.*/inox\.toml$`;
-  const schema = vscode.Uri.file(context.asAbsolutePath('schemas/inox.schema.json')).toString(true);
+function linkSchemas(context) {
+  const wanted = {
+    [String.raw`.*/inox\.toml$`]: 'inox.schema.json',
+    [String.raw`.*/horizon-mod\.toml$`]: 'horizon-mod.schema.json',
+    [String.raw`.*/horizon-mixin\.toml$`]: 'horizon-mixin.schema.json',
+  };
   const toml = vscode.workspace.getConfiguration('evenBetterToml');
   const set = toml.inspect('schema.associations')?.globalValue || {};
-  if (set[key] !== schema) {
-    toml.update('schema.associations', { ...set, [key]: schema }, vscode.ConfigurationTarget.Global);
+  const next = { ...set };
+  for (const [key, file] of Object.entries(wanted)) {
+    next[key] = vscode.Uri.file(context.asAbsolutePath(path.join('schemas', file))).toString(true);
+  }
+  if (JSON.stringify(next) !== JSON.stringify(set)) {
+    toml.update('schema.associations', next, vscode.ConfigurationTarget.Global);
   }
 }
 
 function activate(context) {
-  linkSchema(context);
+  linkSchemas(context);
   const provider = {
     provideDebugConfigurations: () => [defaultConfig()],
-    resolveDebugConfiguration: fill,
+    resolveDebugConfiguration: fillConfig,
     resolveDebugConfigurationWithSubstitutedVariables: resolve,
   };
   context.subscriptions.push(
@@ -247,13 +382,14 @@ function activate(context) {
     }),
     vscode.commands.registerCommand('inox.run', () => {
       const mod = modFolder();
-      if (!mod) return vscode.window.showErrorMessage('Open an Inox mod (a folder holding inox.toml) first.');
+      if (!mod) return vscode.window.showErrorMessage(NO_MOD);
       const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(mod));
       return vscode.debug.startDebugging(folder, { ...defaultConfig(), mod });
     }),
     vscode.commands.registerCommand('inox.build', build),
     vscode.commands.registerCommand('inox.install', install),
-    vscode.commands.registerCommand('inox.newMod', newMod),
+    vscode.commands.registerCommand('inox.check', check),
+    vscode.commands.registerCommand('inox.newMod', () => newMod(context)),
     vscode.commands.registerCommand('inox.pickResources', async () => {
       await config().update('resources', '', vscode.ConfigurationTarget.Global);
       return resources(modFolder());

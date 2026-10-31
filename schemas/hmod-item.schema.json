@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Content mod item (data/<id>/horizon/item/<name>.json)",
+  "description": "An item of a content mod: a vanilla template item's components under <id>:<name>, with these changed. Reference: docs/mods.md in Horizon.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["template"],
+  "properties": {
+    "template": {
+      "type": "string",
+      "pattern": "^minecraft:[a-z0-9_./-]+$",
+      "description": "The vanilla item it copies (minecraft:iron_sword)."
+    },
+    "max_stack_size": { "type": "integer", "minimum": 1, "maximum": 99 },
+    "rarity": { "enum": ["common", "uncommon", "rare", "epic"] },
+    "components": {
+      "type": "object",
+      "description": "A data component patch: minecraft:<type> sets one (minecraft:max_damage), !minecraft:<type> with {} removes it. A type no vanilla item has is refused.",
+      "propertyNames": { "pattern": "^!?[a-z0-9_.-]+:[a-z0-9_./-]+$" }
+    },
+    "crafting_remainder": {
+      "type": "string",
+      "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$",
+      "description": "What it leaves in the crafting grid when used in a recipe (minecraft:bucket)."
+    }
+  }
+}

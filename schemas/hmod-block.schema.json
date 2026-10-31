@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Content mod block (data/<id>/horizon/block/<name>.json)",
+  "description": "A block of a content mod: a vanilla template block copied under <id>:<name>, with these changed. Reference: docs/mods.md in Horizon.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["template"],
+  "properties": {
+    "template": {
+      "type": "string",
+      "pattern": "^minecraft:[a-z0-9_./-]+$",
+      "description": "The vanilla block it copies: its states, behaviour and sounds (minecraft:iron_block)."
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hardness": { "type": "number", "minimum": -1, "description": "Destroy time in seconds of hand mining (-1: unbreakable)." },
+        "explosion_resistance": { "type": "number", "minimum": 0 },
+        "light": { "type": "integer", "minimum": 0, "maximum": 15, "description": "Light it gives, 0 to 15." },
+        "requires_tool": { "type": "boolean", "description": "Drops only when mined with the right tool." },
+        "friction": { "type": "number", "minimum": 0, "description": "Slipperiness (ice is 0.98, most blocks 0.6)." },
+        "map_color": { "type": "integer", "minimum": 0, "maximum": 61, "description": "A MapColor id, 0 to 61." },
+        "sounds": { "type": "string", "pattern": "^minecraft:[a-z0-9_./-]+$", "description": "A vanilla block whose sounds it plays." }
+      }
+    },
+    "shapes": {
+      "type": "object",
+      "description": "Per-state outline and collision boxes, chosen by one state property.",
+      "additionalProperties": false,
+      "required": ["property", "values"],
+      "properties": {
+        "property": { "type": "string" },
+        "values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "array", "items": { "type": "number" }, "minItems": 6, "maxItems": 6 }
+          }
+        }
+      }
+    },
+    "state_properties": {
+      "type": "object",
+      "description": "State properties of its own, which its template does not have (a machine's lit, a pipe's sides).",
+      "propertyNames": { "pattern": "^[a-z0-9_]+$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "enum": ["boolean", "enum"] },
+          "values": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z0-9_]+$" } }
+        },
+        "if": { "properties": { "type": { "const": "enum" } } },
+        "then": { "required": ["values"] }
+      }
+    },
+    "default_state": {
+      "type": "object",
+      "description": "One value for each declared state property.",
+      "additionalProperties": { "type": "string" }
+    },
+    "item": { "type": "boolean", "default": true, "description": "Whether it has an item (placeable, in the creative inventory)." },
+    "components": {
+      "type": "object",
+      "description": "Its item's data component patch: minecraft:<type> sets one, !minecraft:<type> with {} removes it.",
+      "propertyNames": { "pattern": "^!?[a-z0-9_.-]+:[a-z0-9_./-]+$" }
+    }
+  }
+}

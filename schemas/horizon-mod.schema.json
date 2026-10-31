@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "horizon-mod.toml",
+  "description": "A Horizon content mod (.hmod): blocks, items, mob effects, recipes and assets from data/ and assets/, no code. Reference: docs/mods.md in Horizon. Unknown keys are refused.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "version", "api"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9_]{1,64}$", "description": "The mod id and its namespace: [a-z0-9_], 1 to 64 characters." },
+    "name": { "type": "string", "minLength": 1, "description": "Its name in Options > Mods." },
+    "version": { "type": "string", "minLength": 1, "description": "Its version (0.1.0)." },
+    "description": { "type": "string" },
+    "authors": { "type": "array", "items": { "type": "string" } },
+    "api": { "type": "string", "examples": ["0.2"], "description": "The mod API it is made for: 0.2 for content mods." },
+    "side": {
+      "enum": ["client", "server", "both"],
+      "description": "Where it runs: both for content mods (the server tells clients which version it expects)."
+    },
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "description": "What it may do, shown to the player before they turn it on. A content mod has registries.",
+      "items": {
+        "enum": ["game-read", "chat", "hud", "storage", "command", "registries", "ui", "render", "input", "players", "world", "recipes"]
+      }
+    },
+    "namespaces": {
+      "type": "array",
+      "description": "More namespaces the mod's files use besides its id (not minecraft, c or horizon).",
+      "items": { "type": "string", "pattern": "^[a-z0-9_.-]+$" }
+    },
+    "experimental": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Capabilities still experimental that the mod asks for."
+    }
+  }
+}

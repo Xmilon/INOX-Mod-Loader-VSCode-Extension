@@ -1,0 +1,528 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "horizon-mixin.toml",
+  "description": "A Horizon native mod (.hnmod): a horizon-mixins bundle, or an API mod ([api], no [[injection]]). Reference: docs/native-mods.md in Horizon.",
+  "type": "object",
+  "required": [
+    "mod"
+  ],
+  "properties": {
+    "mod": {
+      "type": "object",
+      "description": "The mod's identity: the same id and version as its .hnmod's horizon-native.json.",
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]{1,64}$",
+          "description": "The mod id: [a-z0-9_], 1 to 64 characters."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Its version (0.1.0)."
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "description": "What it was made for.",
+      "properties": {
+        "horizon_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "The Horizon commit it was made and tested on (40 hex digits). Needed to pack an .hnmod and for the registry."
+        }
+      }
+    },
+    "api": {
+      "type": "object",
+      "description": "An API mod: no mixin. Its crate implements horizon_mod_api::Mod and the game calls it after its hook points, so building it never recompiles horizon-client. It may have no [[injection]].",
+      "required": [
+        "crate",
+        "entry"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "crate": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]{1,64}$",
+          "description": "The [[crate]] (its id) holding the mod."
+        },
+        "entry": {
+          "type": "string",
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*(::[A-Za-z_][A-Za-z0-9_]*)*$",
+          "description": "A public fn() -> Box<dyn horizon_mod_api::Mod> in that crate (create)."
+        }
+      }
+    },
+    "injection": {
+      "type": "array",
+      "description": "Where the mod injects code: a named hook point (hook + hook_version), or a raw target.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "helper"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A name for this injection."
+          },
+          "hook": {
+            "description": "A hook point of native-hooks.json, by name: it moves with the source.",
+            "oneOf": [
+              {
+                "const": "apply_effect_tick",
+                "description": "Hook point `apply_effect_tick` v1: `native_apply_effect_tick`."
+              },
+              {
+                "const": "attack_entity",
+                "description": "Hook point `attack_entity` v1: `native_attack_entity`."
+              },
+              {
+                "const": "block_changed",
+                "description": "Hook point `block_changed` v1: `native_block_changed`."
+              },
+              {
+                "const": "block_entity",
+                "description": "Hook point `block_entity` v1: `native_block_entity`."
+              },
+              {
+                "const": "block_entity_container",
+                "description": "Hook point `block_entity_container` v1: `native_block_entity_container`."
+              },
+              {
+                "const": "block_entity_fluids",
+                "description": "Hook point `block_entity_fluids` v1: `native_block_entity_fluids`."
+              },
+              {
+                "const": "block_entity_tick",
+                "description": "Hook point `block_entity_tick` v1: `native_block_entity_tick`."
+              },
+              {
+                "const": "block_entity_ticks",
+                "description": "Hook point `block_entity_ticks` v1: `native_block_entity_ticks`."
+              },
+              {
+                "const": "block_entity_update_tag",
+                "description": "Hook point `block_entity_update_tag` v1: `native_block_entity_update_tag`."
+              },
+              {
+                "const": "block_signal",
+                "description": "Hook point `block_signal` v1: `native_block_signal`."
+              },
+              {
+                "const": "block_spread",
+                "description": "Hook point `block_spread` v1: `native_block_spread`."
+              },
+              {
+                "const": "chunk_load",
+                "description": "Hook point `chunk_load` v1: `native_chunk_load`."
+              },
+              {
+                "const": "chunk_unload",
+                "description": "Hook point `chunk_unload` v1: `native_chunk_unload`."
+              },
+              {
+                "const": "command",
+                "description": "Hook point `command` v1: `native_command`."
+              },
+              {
+                "const": "commands",
+                "description": "Hook point `commands` v1: `native_commands`."
+              },
+              {
+                "const": "destroy_block",
+                "description": "Hook point `destroy_block` v1: `native_destroy_block`."
+              },
+              {
+                "const": "emissive",
+                "description": "Hook point `emissive` v1: `native_emissive`."
+              },
+              {
+                "const": "entity_join_level",
+                "description": "Hook point `entity_join_level` v1: `native_entity_join_level`."
+              },
+              {
+                "const": "entity_leave_level",
+                "description": "Hook point `entity_leave_level` v1: `native_entity_leave_level`."
+              },
+              {
+                "const": "explosion_detonate",
+                "description": "Hook point `explosion_detonate` v1: `native_explosion_detonate`."
+              },
+              {
+                "const": "fill_bucket",
+                "description": "Hook point `fill_bucket` v1: `native_fill_bucket`."
+              },
+              {
+                "const": "frame",
+                "description": "Hook point `frame` v1: `native_frame`."
+              },
+              {
+                "const": "health_hud",
+                "description": "Hook point `health_hud` v1: `native_health_hud`."
+              },
+              {
+                "const": "hud",
+                "description": "Hook point `hud` v1: `native_hud`."
+              },
+              {
+                "const": "hurt_enemy",
+                "description": "Hook point `hurt_enemy` v1: `native_hurt_enemy`."
+              },
+              {
+                "const": "interact_entity",
+                "description": "Hook point `interact_entity` v1: `native_interact_entity`."
+              },
+              {
+                "const": "inventory_tick",
+                "description": "Hook point `inventory_tick` v1: `native_inventory_tick`."
+              },
+              {
+                "const": "is_signal_source",
+                "description": "Hook point `is_signal_source` v1: `native_is_signal_source`."
+              },
+              {
+                "const": "item_dropped",
+                "description": "Hook point `item_dropped` v1: `native_item_dropped`."
+              },
+              {
+                "const": "item_picked_up",
+                "description": "Hook point `item_picked_up` v1: `native_item_picked_up`."
+              },
+              {
+                "const": "key",
+                "description": "Hook point `key` v1: `native_key`."
+              },
+              {
+                "const": "left_click_block",
+                "description": "Hook point `left_click_block` v1: `native_left_click_block`."
+              },
+              {
+                "const": "level_tick_post",
+                "description": "Hook point `level_tick_post` v1: `native_level_tick_post`."
+              },
+              {
+                "const": "level_tick_pre",
+                "description": "Hook point `level_tick_pre` v1: `native_level_tick_pre`."
+              },
+              {
+                "const": "living_incoming_damage",
+                "description": "Hook point `living_incoming_damage` v1: `native_living_incoming_damage`."
+              },
+              {
+                "const": "menu_button",
+                "description": "Hook point `menu_button` v1: `native_menu_button`."
+              },
+              {
+                "const": "menu_button_v2",
+                "description": "Hook point `menu_button_v2` v1: `native_menu_button_v2`."
+              },
+              {
+                "const": "menu_clicked",
+                "description": "Hook point `menu_clicked` v1: `native_menu_clicked`."
+              },
+              {
+                "const": "menu_closed",
+                "description": "Hook point `menu_closed` v1: `native_menu_closed`."
+              },
+              {
+                "const": "minimap",
+                "description": "Hook point `minimap` v1: `native_minimap`."
+              },
+              {
+                "const": "mob_effect_added",
+                "description": "Hook point `mob_effect_added` v1: `native_mob_effect_added`."
+              },
+              {
+                "const": "mob_killed",
+                "description": "Hook point `mob_killed` v1: `native_mob_killed`."
+              },
+              {
+                "const": "mob_spawned",
+                "description": "Hook point `mob_spawned` v1: `native_mob_spawned`."
+              },
+              {
+                "const": "mods",
+                "description": "Hook point `mods` v1: `native_mods`."
+              },
+              {
+                "const": "neighbor_changed",
+                "description": "Hook point `neighbor_changed` v1: `native_neighbor_changed`."
+              },
+              {
+                "const": "net_from_client",
+                "description": "Hook point `net_from_client` v1: `native_net_from_client`."
+              },
+              {
+                "const": "net_from_server",
+                "description": "Hook point `net_from_server` v1: `native_net_from_server`."
+              },
+              {
+                "const": "on_effect_added",
+                "description": "Hook point `on_effect_added` v1: `native_on_effect_added`."
+              },
+              {
+                "const": "on_equip",
+                "description": "Hook point `on_equip` v1: `native_on_equip`."
+              },
+              {
+                "const": "panel_event",
+                "description": "Hook point `panel_event` v1: `native_panel_event`."
+              },
+              {
+                "const": "perform_command",
+                "description": "Hook point `perform_command` v1: `native_perform_command`."
+              },
+              {
+                "const": "piston_move",
+                "description": "Hook point `piston_move` v1: `native_piston_move`."
+              },
+              {
+                "const": "place_block",
+                "description": "Hook point `place_block` v1: `native_place_block`."
+              },
+              {
+                "const": "player_died",
+                "description": "Hook point `player_died` v1: `native_player_died`."
+              },
+              {
+                "const": "player_logged_in",
+                "description": "Hook point `player_logged_in` v1: `native_player_logged_in`."
+              },
+              {
+                "const": "player_logged_out",
+                "description": "Hook point `player_logged_out` v1: `native_player_logged_out`."
+              },
+              {
+                "const": "player_tick",
+                "description": "Hook point `player_tick` v1: `native_player_tick`."
+              },
+              {
+                "const": "random_tick",
+                "description": "Hook point `random_tick` v1: `native_random_tick`."
+              },
+              {
+                "const": "register_commands",
+                "description": "Hook point `register_commands` v1: `native_register_commands`."
+              },
+              {
+                "const": "render_needs",
+                "description": "Hook point `render_needs` v1: `native_render_needs`."
+              },
+              {
+                "const": "right_click_block",
+                "description": "Hook point `right_click_block` v1: `native_right_click_block`."
+              },
+              {
+                "const": "screen",
+                "description": "Hook point `screen` v1: `native_screen`."
+              },
+              {
+                "const": "screen_click",
+                "description": "Hook point `screen_click` v1: `native_screen_click`."
+              },
+              {
+                "const": "screen_draw",
+                "description": "Hook point `screen_draw` v1: `native_screen_draw`."
+              },
+              {
+                "const": "screen_tooltip",
+                "description": "Hook point `screen_tooltip` v1: `native_screen_tooltip`."
+              },
+              {
+                "const": "server_about_to_start",
+                "description": "Hook point `server_about_to_start` v1: `native_server_about_to_start`. NeoForge: ServerAboutToStartEvent. Runs on the server."
+              },
+              {
+                "const": "server_stopping",
+                "description": "Hook point `server_stopping` v1: `native_server_stopping`. NeoForge: ServerStoppingEvent. Runs on the server."
+              },
+              {
+                "const": "server_tick",
+                "description": "Hook point `server_tick` v1: `native_server_tick`."
+              },
+              {
+                "const": "settings",
+                "description": "Hook point `settings` v1: `native_settings`."
+              },
+              {
+                "const": "settings_click",
+                "description": "Hook point `settings_click` v1: `native_settings_click`."
+              },
+              {
+                "const": "should_apply_effect_tick_this_tick",
+                "description": "Hook point `should_apply_effect_tick_this_tick` v1: `native_should_apply_effect_tick_this_tick`."
+              },
+              {
+                "const": "tick",
+                "description": "Hook point `tick` v1: `native_tick`."
+              },
+              {
+                "const": "tick_block",
+                "description": "Hook point `tick_block` v1: `native_tick_block`."
+              },
+              {
+                "const": "tooltip",
+                "description": "Hook point `tooltip` v1: `native_tooltip`."
+              },
+              {
+                "const": "update_shape",
+                "description": "Hook point `update_shape` v1: `native_update_shape`."
+              },
+              {
+                "const": "use_item",
+                "description": "Hook point `use_item` v1: `native_use_item`."
+              },
+              {
+                "const": "use_item_on",
+                "description": "Hook point `use_item_on` v1: `native_use_item_on`."
+              },
+              {
+                "const": "visuals",
+                "description": "Hook point `visuals` v1: `native_visuals`."
+              },
+              {
+                "const": "wheel",
+                "description": "Hook point `wheel` v1: `native_wheel`."
+              },
+              {
+                "const": "world_drawn",
+                "description": "Hook point `world_drawn` v1: `native_world_drawn`."
+              },
+              {
+                "const": "world_lifecycle",
+                "description": "Hook point `world_lifecycle` v1: `native_world_lifecycle`."
+              },
+              {
+                "const": "zoom",
+                "description": "Hook point `zoom` v1: `native_zoom`."
+              }
+            ]
+          },
+          "hook_version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The hook contract version (1 for most)."
+          },
+          "target": {
+            "type": "string",
+            "description": "A raw path in the source (horizon_client::game::...). Prefer hook."
+          },
+          "kind": {
+            "type": "string",
+            "examples": [
+              "HEAD",
+              "RETURN",
+              "MODIFY_ARG",
+              "OVERWRITE"
+            ],
+            "description": "Where and how the helper runs (HEAD for hook points; horizon-mixins' README lists every kind)."
+          },
+          "helper": {
+            "type": "string",
+            "pattern": "\\.rs$",
+            "description": "The .rs file (in the bundle) with the code."
+          },
+          "bindings": {
+            "type": "array",
+            "description": "What the helper receives: a name, its type and the expression for it.",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "ty",
+                "value"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "ty": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "crate": {
+      "type": "array",
+      "description": "The mod's own Cargo packages, staged as native-crates/<mod>/<crate>/. Dependencies only from Horizon's Cargo.lock.",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "path"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9_]{1,64}$",
+            "description": "The crate id ([api] crate names it)."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Its folder in the bundle, holding Cargo.toml."
+          },
+          "dependent": {
+            "type": "string",
+            "description": "The package that depends on it (horizon-client by default)."
+          }
+        }
+      }
+    },
+    "post_build": {
+      "type": "array",
+      "description": "Programs of the crates run after the game compiles, in the new build folder.",
+      "items": {
+        "type": "object",
+        "required": [
+          "crate",
+          "bin"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "crate": {
+            "type": "string"
+          },
+          "bin": {
+            "type": "string"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  },
+  "if": {
+    "required": [
+      "api"
+    ]
+  },
+  "then": {
+    "not": {
+      "required": [
+        "injection"
+      ]
+    }
+  }
+}

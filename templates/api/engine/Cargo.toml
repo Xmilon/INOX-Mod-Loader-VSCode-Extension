@@ -1,0 +1,8 @@
+[package]
+name = "{id}-engine"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# The launcher points this at the Horizon it builds with.
+horizon-mod-api = {api_dependency}

@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Content mod creative tab (data/<id>/horizon/creative_tab/<name>.json)",
+  "description": "A creative inventory tab, after vanilla's (ten to a page). Reference: docs/mods.md in Horizon.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "icon", "items"],
+  "properties": {
+    "title": { "type": "string", "description": "A lang key (itemGroup.ruby) or English text." },
+    "icon": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$", "description": "The item on the tab's button." },
+    "items": {
+      "type": "array",
+      "description": "Its items in order; ones the game doesn't have are left out.",
+      "items": { "type": "string", "pattern": "^[a-z0-9_.-]+:[a-z0-9_./-]+$" }
+    }
+  }
+}
